@@ -1,0 +1,87 @@
+name: RAJ MISHRA ULTIMATE 24/7 BOT
+
+on:
+  workflow_dispatch:        # Manual run
+  schedule:
+    - cron: "*/15 * * * *"  # Har 15 minute (UTC)
+  push:
+    branches: [ main ]       # Push pe bhi run
+
+concurrency:
+  group: raj-mishra-bot-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel running jobs
+
+jobs:
+  raj-mishra-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350       # 350 min run every job and then continue on new job
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install Dependencies
+      run: |
+        pip install requests
+        pip install colorama  # Optional
+        
+    - name: Create Required Files (if missing)
+      run: |
+        touch convo.txt File.txt tokennum.txt hatersname.txt time.txt
+        echo "✅ Files ready"
+        
+    - name: Show Configuration
+      run: |
+        echo "📁 Files in repository:"
+        ls -la
+        echo ""
+        echo "📄 Convo: $(cat convo.txt 2>/dev/null || echo 'Not set')"
+        echo "📄 Messages: $(wc -l < File.txt 2>/dev/null || echo '0') lines"
+        echo "🔑 Tokens: $(wc -l < tokennum.txt 2>/dev/null || echo '0') lines"
+        echo "👤 Hater: $(cat hatersname.txt 2>/dev/null || echo 'Not set')"
+        echo "⏱️ Speed: $(cat time.txt 2>/dev/null || echo '2') seconds"
+        
+    - name: 🚀 RUN BOT WITH AUTO-RESTART LOOP
+      run: |
+        echo "══════════════════════════════════════════════"
+        echo "   🤖 RAJ MISHRA BOT - 24/7 ULTIMATE EDITION"
+        echo "══════════════════════════════════════════════"
+        echo "📅 Start Time: $(date)"
+        echo "⏲️ GitHub Timeout: 14 minutes"
+        echo "🔄 Auto-Restart: Every 10 seconds if crash"
+        echo "══════════════════════════════════════════════"
+        
+        COUNTER=1
+        while true; do
+            echo ""
+            echo "══════════════════════════════════════════════"
+            echo "  🔄 CYCLE #$COUNTER - $(date)"
+            echo "══════════════════════════════════════════════"
+            
+            # Run the bot
+            python main.py
+            
+            EXIT_CODE=$?
+            
+            if [ $EXIT_CODE -eq 0 ]; then
+                echo "✅ Cycle #$COUNTER completed successfully"
+            else
+                echo "⚠️ Cycle #$COUNTER crashed with code $EXIT_CODE"
+            fi
+            
+            echo "⏰ Restarting in 10 seconds... (Ctrl+C to stop)"
+            echo "══════════════════════════════════════════════"
+            
+            COUNTER=$((COUNTER + 1))
+            sleep 10
+        done
+        
+      continue-on-error: true
+      env:
+        PYTHONUNBUFFERED: 1
+        PYTHONIOENCODING: utf-8
