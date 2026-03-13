@@ -1,21 +1,17 @@
-name: RAJ MISHRA BOT
+name: Python Cron Runner
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
-
-concurrency:
-  group: raj-mishra-bot
-  cancel-in-progress: false
+    - cron: "*/10 * * * *"   # har 10 minute
+  workflow_dispatch:
 
 jobs:
-  bot-runner:
+  run-script:
     runs-on: ubuntu-latest
-    timeout-minutes: 350  # ~6 hours
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -23,19 +19,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Dependencies
-        run: pip install --upgrade pip && pip install requests
-
-      - name: Start Bot Loop
+      - name: Install dependencies
         run: |
-          echo "=== RAJ MISHRA BOT STARTED ==="
-          export PYTHONUNBUFFERED=1
+          python -m pip install --upgrade pip
+          pip install requests
 
-          while true
+      - name: Run script with retry
+        run: |
+          ATTEMPT=0
+          MAX_ATTEMPT=3
+
+          until [ $ATTEMPT -ge $MAX_ATTEMPT ]
           do
-            echo "Starting main.py..."
-            # Safety: Timeout 330m, network or API stuck protection
-            timeout 330m python -u main.py || echo "Bot crashed/stuck. Restarting..."
-            echo "Restarting in 5 seconds..."
-            sleep 5
+            echo "Starting script attempt $ATTEMPT"
+            python main.py && break
+            ATTEMPT=$((ATTEMPT+1))
+            echo "Script failed. Restarting in 10 seconds..."
+            sleep 10
           done
