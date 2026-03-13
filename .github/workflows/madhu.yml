@@ -1,40 +1,39 @@
-name: SELF RESTART BOT
+name: Python Cron Runner
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/10 * * * *"   # har 10 minute
+  workflow_dispatch:
 
 jobs:
-  run-bot:
+  run-script:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install Requests
-        run: pip install requests
-
-      - name: Run Bot
+      - name: Install dependencies
         run: |
-          echo "BOT RUNNING"
-          END=$((SECONDS+21000))   # ~5h 50m
+          python -m pip install --upgrade pip
+          pip install requests
 
-          while [ $SECONDS -lt $END ]; do
-            python main.py
-            sleep 3
+      - name: Run script with retry
+        run: |
+          ATTEMPT=0
+          MAX_ATTEMPT=3
+
+          until [ $ATTEMPT -ge $MAX_ATTEMPT ]
+          do
+            echo "Starting script attempt $ATTEMPT"
+            python main.py && break
+            ATTEMPT=$((ATTEMPT+1))
+            echo "Script failed. Restarting in 10 seconds..."
+            sleep 10
           done
-
-      - name: Restart Workflow
-        run: |
-          curl -X POST \
-          -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-          -H "Accept: application/vnd.github+json" \
-          https://api.github.com/repos/${{ github.repository }}/actions/workflows/run.yml/dispatches \
-          -d '{"ref":"main"}'
